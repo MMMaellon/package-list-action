@@ -320,19 +320,20 @@ namespace VRC.PackageManagement.Automation
             var releasesDict = new Dictionary<string, Octokit.Release>();
             Regex regex = new Regex(@"([^.]*\d+)\.");
             foreach(var release in allReleases){
+                Serilog.Log.Information($"Found tag {release.TagName}");
                 if(release.TagName == "0.0.0"){
                     continue;
                 }
                 Match match = regex.Match(release.TagName);
                 if(match.Success){
                     string majorVersion = match.Groups[1].Value;
-                    // if(releasesDict.ContainsKey(majorVersion)){
-                    //     if(String.Compare(releasesDict[majorVersion].TagName, release.TagName) < 0){
-                    //         releasesDict[majorVersion] = release;
-                    //     }
-                    // } else {
-                    // }
-                    releasesDict[majorVersion] = release;
+                    if(releasesDict.ContainsKey(majorVersion)){
+                        if(String.Compare(releasesDict[majorVersion].TagName, release.TagName) < 0){
+                            releasesDict[majorVersion] = release;
+                        }
+                    } else {
+                        releasesDict[majorVersion] = release;
+                    }
                 }
             }
             var releases = releasesDict.Values.ToList().Union(fullReleases);
@@ -346,6 +347,7 @@ namespace VRC.PackageManagement.Automation
             
             foreach (Octokit.Release release in releases)
             {
+                Serilog.Log.Information($"Adding release with tag {release.TagName}");
                 result.AddRange(release.Assets.Where(asset => asset.Name.EndsWith(".zip")).Select(asset => asset.BrowserDownloadUrl));
             }
 
