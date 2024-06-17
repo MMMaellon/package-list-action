@@ -318,7 +318,7 @@ namespace VRC.PackageManagement.Automation
             var allReleases = await Client.Repository.Release.GetAll(owner, name);
             var fullReleases = allReleases.Where(release => !release.Prerelease);
             var releasesDict = new Dictionary<string, Octokit.Release>();
-            Regex regex = new Regex(@"([^.]*\d+)\.");
+            Regex regex = new Regex(@"([^.]*\d+\.?\d+)\.");
             foreach(var release in allReleases){
                 Serilog.Log.Information($"Found tag {release.TagName}");
                 if(release.TagName == "0.0.0"){
@@ -326,13 +326,14 @@ namespace VRC.PackageManagement.Automation
                 }
                 Match match = regex.Match(release.TagName);
                 if(match.Success){
-                    string majorVersion = match.Groups[1].Value;
-                    if(releasesDict.ContainsKey(majorVersion)){
-                        if(String.Compare(releasesDict[majorVersion].TagName, release.TagName) < 0){
-                            releasesDict[majorVersion] = release;
-                        }
+                    string majorMinorVersion = match.Groups[1].Value;
+                    if(releasesDict.ContainsKey(majorMinorVersion)){
+                        // if(String.Compare(releasesDict[majorMinorVersion].TagName, release.TagName) < 0){
+                        //     releasesDict[majorMinorVersion] = release;
+                        // }
+                        //assume it always comes in in order
                     } else {
-                        releasesDict[majorVersion] = release;
+                        releasesDict[majorMinorVersion] = release;
                     }
                 }
             }
