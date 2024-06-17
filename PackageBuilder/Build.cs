@@ -16,6 +16,7 @@ using Octokit;
 using VRC.PackageManagement.Core.Types.Packages;
 using ProductHeaderValue = Octokit.ProductHeaderValue;
 using ListingSource = VRC.PackageManagement.Automation.Multi.ListingSource;
+using System.Text.RegularExpressions;
 
 namespace VRC.PackageManagement.Automation
 {
@@ -46,12 +47,13 @@ namespace VRC.PackageManagement.Automation
 
         [Parameter("Filename of source json")]
         string PackageListingSourceFilename = "source.json";
+        // string PackageListingSourceFilename = "test-source.json";
         
-        // assumes that "template-package-listings" repo is checked out in sibling dir for local testing, can be overriden
+        // assumes that "template-package-listings" repo is checked out in sibling dir for local testing, can be overridden
         [Parameter("Path to Target Listing Root")] 
         AbsolutePath PackageListingSourceFolder = IsServerBuild
             ? RootDirectory.Parent
-            : RootDirectory.Parent / "template-package-listing";
+            : RootDirectory.Parent / "MMMaellonVCCListing";
 
         [Parameter("Path to existing index.json file, typically https://{owner}.github.io/{repo}/index.json")]
         string CurrentListingUrl =>
@@ -313,8 +315,28 @@ namespace VRC.PackageManagement.Automation
             }
             
             // Go through each release
-            var releases = await Client.Repository.Release.GetAll(owner, name);
-            if (releases.Count == 0)
+            var allReleases = await Client.Repository.Release.GetAll(owner, name);
+            var fullReleases = allReleases.Where(release => !release.Prerelease);
+            var releasesDict = new Dictionary<string, Octokit.Release>();
+            Regex regex = new Regex(@"([^.]*\d+)\.");
+            foreach(var release in allReleases){
+                if(release.TagName == "0.0.0"){
+                    continue;
+                }
+                Match match = regex.Match(release.TagName);
+                if(match.Success){
+                    string majorVersion = match.Groups[1].Value;
+                    // if(releasesDict.ContainsKey(majorVersion)){
+                    //     if(String.Compare(releasesDict[majorVersion].TagName, release.TagName) < 0){
+                    //         releasesDict[majorVersion] = release;
+                    //     }
+                    // } else {
+                    // }
+                    releasesDict[majorVersion] = release;
+                }
+            }
+            var releases = releasesDict.Values.ToList().Union(fullReleases);
+            if (releases.Count() == 0)
             {
                 Serilog.Log.Information($"Found no releases for {owner}/{name}");
                 return null;

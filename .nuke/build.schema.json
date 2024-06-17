@@ -47,6 +47,10 @@
           "type": "string",
           "description": "Directory to save index into"
         },
+        "LocalTestPackagesPath": {
+          "type": "string",
+          "description": "Path to Target Package"
+        },
         "NoLogo": {
           "type": "boolean",
           "description": "Disables displaying the NUKE logo"
